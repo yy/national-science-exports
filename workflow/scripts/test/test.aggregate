@@ -1,0 +1,18 @@
+#!/bin/bash
+
+readonly FOLDER1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/RCAandProximity/corresponding/
+readonly OUTPUT1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/RCAandProximity/corresponding/rca_correpsonding_all.csv
+
+Rscript --vanilla ../AggregateProxAndRCAFiles.R -f $FOLDER1 -p *rca.csv -o $OUTPUT1
+
+
+readonly FOLDER2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/RCAandProximity/full/
+readonly OUTPUT2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/RCAandProximity/full/rca_full_all.csv
+
+Rscript --vanilla ../AggregateProxAndRCAFiles.R -f $FOLDER2 -p *rca.csv -o $OUTPUT2
+
+
+readonly FOLDER3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/RCAandProximity/fractional/
+readonly OUTPUT3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/RCAandProximity/fractional/rca_fractional_all.csv
+
+Rscript --vanilla ../AggregateProxAndRCAFiles.R -f $FOLDER3 -p *rca.csv -o $OUTPUT3

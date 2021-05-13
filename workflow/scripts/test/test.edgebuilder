@@ -1,0 +1,15 @@
+#!/bin/bash
+
+readonly GRAPH1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Graph/graph_corr.graphml
+readonly GRAPH2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Graph/graph_full.graphml
+readonly GRAPH3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Graph/graph_frac.graphml
+
+readonly WEIGHTS=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Graph/19732016msb0.2_weights.txt
+
+readonly OUTPUT1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Edgefiles/edgefile_pub_corr.csv
+readonly OUTPUT2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Edgefiles/edgefile_pub_full.csv
+readonly OUTPUT3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Edgefiles/edgefile_pub_frac.csv
+
+Rscript --vanilla ../BuildEdgeFile.R $GRAPH1 $WEIGHTS $OUTPUT1
+Rscript --vanilla ../BuildEdgeFile.R $GRAPH2 $WEIGHTS $OUTPUT2
+Rscript --vanilla ../BuildEdgeFile.R $GRAPH3 $WEIGHTS $OUTPUT3

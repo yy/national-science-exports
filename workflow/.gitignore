@@ -1,0 +1,9 @@
+.snakemake
+PROJ_HOME_DIR
+
+# ignore the symlink
+data
+
+# ignore the Rplots.pdf auto-generated file
+Rplots.pdf
+Rplots*.pdf

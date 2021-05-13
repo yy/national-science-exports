@@ -1,0 +1,9 @@
+#!/bin/bash
+
+readonly INPUT=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/backbone/Visualization/pub_node_datafile.csv
+readonly MAPPING=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Additional_data/Data_cleaning/ggplot_geo_mapping.csv
+readonly OUTPUT=out.pdf
+readonly DISCIPLINE="Nuclear Technology"
+readonly YEARS="2013-2017"
+
+Rscript --vanilla GenerateDisciplineWorldMap.R -i $INPUT -m $MAPPING -o $OUTPUT -d "$DISCIPLINE" -y $YEARS

@@ -1,0 +1,5 @@
+readonly NODES=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Nodefiles/nodefile_pub_corr.csv
+
+readonly EDGES=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Edgefiles/edgefile_pub_corr.csv
+
+Rscript --vanilla ../PlotWholeNetworkWithLabels.R $NODES $EDGES "all_corresponding.pdf"

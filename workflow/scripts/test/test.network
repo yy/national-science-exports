@@ -1,0 +1,12 @@
+readonly NODES1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Nodefiles/nodefile_pub_corr.csv
+readonly NODES2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Nodefiles/nodefile_pub_frac.csv
+readonly NODES3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Nodefiles/nodefile_pub_full.csv
+
+
+readonly EDGES1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Edgefiles/edgefile_pub_corr.csv
+readonly EDGES2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Edgefiles/edgefile_pub_frac.csv
+readonly EDGES3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Edgefiles/edgefile_pub_full.csv
+
+Rscript --vanilla ../PlotCountryYearNetwork.R $NODES1 $EDGES1 "China" "2013-2017" "corresponding.pdf"
+Rscript --vanilla ../PlotCountryYearNetwork.R $NODES2 $EDGES2 "China" "2013-2017" "full.pdf"
+Rscript --vanilla ../PlotCountryYearNetwork.R $NODES3 $EDGES3 "China" "2013-2017" "fractional.pdf"

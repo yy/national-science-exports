@@ -1,0 +1,21 @@
+Package: rNSP
+Type: Package
+Title: R Code for the National Science Production Research Project
+Version: 0.1.0
+Author: Dakota Murray
+Maintainer: <dakmurra@iu.edu>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
+Imports:
+    dplyr,
+    igraph,
+    network,
+    intergraph
+Suggests:
+    viridis,
+    ggplot2,
+    ggtern

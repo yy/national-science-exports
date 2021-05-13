@@ -1,0 +1,24 @@
+#!/bin/bash
+
+readonly GRAPH1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Graph/graph_corr.graphml
+readonly GRAPH2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Graph/graph_full.graphml
+readonly GRAPH3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Graph/graph_frac.graphml
+
+readonly COUNTS1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Cleaned_raw_data/pubcnt_corr.csv
+readonly COUNTS2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Cleaned_raw_data/pubcnt_full.csv
+readonly COUNTS3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Cleaned_raw_data/pubcnt_frac.csv
+
+readonly RCA1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/RCA/agg_rca_corr.csv
+readonly RCA2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/RCA/agg_rca_full.csv
+readonly RCA3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/RCA/agg_rca_frac.csv
+
+# Lists classifications of disciplines
+readonly DISC=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Additional_data/discipline_classification.csv
+
+readonly OUTPUT1=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Nodefiles/nodefile_pub_corr.csv
+readonly OUTPUT2=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Nodefiles/nodefile_pub_full.csv
+readonly OUTPUT3=/Users/dakotamurray/Dropbox/NSP-dropbox/data/Derived/Publication_based/Nodefiles/nodefile_pub_frac.csv
+
+Rscript --vanilla ../BuildNodeFile.R $GRAPH1 $COUNTS1 $RCA1 $DISC $OUTPUT1
+Rscript --vanilla ../BuildNodeFile.R $GRAPH2 $COUNTS2 $RCA2 $DISC $OUTPUT2
+Rscript --vanilla ../BuildNodeFile.R $GRAPH3 $COUNTS3 $RCA3 $DISC $OUTPUT3

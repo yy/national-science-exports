@@ -1,0 +1,738 @@
+################################################################################
+# Main Snakefile for managing NSP project workflow. Target rules are distirbuted
+# across the following files within the workflow/ directory:
+#
+# - Snakefile_dataprocessing.smk
+# - Snakefile_country.smk
+# - Snakefile_GINI.smk
+# - Snakefile_RCA_network.smk
+# - Snakefile_ternary.smk
+# - Snakefile_transition.smk
+#
+# In order to make use of this file, you will need to create a file in the
+# workflow/ directory with the name 'PROJ_HOME_DIR'. This file will contain
+# a single line, the absolute path to the NSP project directory (NOT the
+# path to this repository).
+#
+# All scripts used in this Snakefile can be found in the workflow/scripts
+# directory.
+################################################################################
+
+#############
+# Libraries #
+#############
+from os.path import join as osjoin
+
+import pandas as pd
+
+####################
+# main directories #
+####################
+
+# store the local path to the dropbox folder in the 'PROJ_HOME_DIR' file.
+PROJ_HOME = open("PROJ_HOME_DIR").read().strip()
+DATA_DIR = osjoin(PROJ_HOME, "Data")
+RAW_DIR = osjoin(DATA_DIR, "Raw")
+DERIVED_DIR = osjoin(DATA_DIR, "Derived")
+FIG_DIR = osjoin(PROJ_HOME, "Figs")
+ADDITIONAL_DIR = osjoin(DATA_DIR, "Additional_data")
+
+PUBCNT_DATA_DIR = osjoin(DERIVED_DIR, "Cleaned_raw_data")
+PUB_BASED_DERIVED_DIR = osjoin(DERIVED_DIR, "Publication_based")
+RCA_DATA_DIR = osjoin(PUB_BASED_DERIVED_DIR, "RCA")
+PROX_DATA_DIR = osjoin(PUB_BASED_DERIVED_DIR, "Prox")
+GINI_DATA_DIR = osjoin(PUB_BASED_DERIVED_DIR, "Gini")
+BACKBONE_DIR = osjoin(PUB_BASED_DERIVED_DIR, "Backbone")
+SBM_DIR = osjoin(PUB_BASED_DERIVED_DIR, "SBM")
+GRAPH_FILE_DIR = osjoin(PUB_BASED_DERIVED_DIR, "Graph")
+NODE_FILE_DIR = osjoin(PUB_BASED_DERIVED_DIR, "Nodefiles")
+EDGE_FILE_DIR = osjoin(PUB_BASED_DERIVED_DIR, "Edgefiles")
+TRANSITION_DATA_DIR = osjoin(PUB_BASED_DERIVED_DIR, "Transition")
+
+##################
+# Raw data files #
+##################
+RAW_XLSXS = osjoin(RAW_DIR, "raw_{type}.xlsx")
+RAW_CSVS = osjoin(RAW_DIR, "raw_{type}.csv")
+
+#################
+# Data Cleaning #
+#################
+COUNTRY_CONSOLIDATION_FILE = osjoin(RAW_DIR, "country_consolidation.csv")
+
+#############################
+# country-consolidated csvs #
+#############################
+PUBCNT_CSVS = osjoin(PUBCNT_DATA_DIR, "pubcnt_{type}.csv")
+PUBCNT_GLOBAL_CSV = osjoin(PUBCNT_DATA_DIR, "pubcnt_global.csv")
+PUBCNT_DIS_CSV = osjoin(PUBCNT_DATA_DIR, "pubcnt_discipline.csv")
+
+
+# this file contains "ALL COUNTRIES"!
+PUBCNT_FULL = osjoin(PUBCNT_DATA_DIR, "pubcnt_full.csv")
+
+#####################
+# RCA and proximity #
+#####################
+RCA_CSVS = osjoin(RCA_DATA_DIR, '{type}','rca_{type}_{period}.csv')
+RCA_PROX_CSVS = osjoin(RCA_DATA_DIR, '{type}','rca_{type}_{startyear}-{endyear}.csv')
+PROX_CSVS = osjoin(PROX_DATA_DIR, 'prox_{type}_{startyear}-{endyear}.csv')
+PROX_WHOLE_TIMEPERIOD_CSV=PROX_DATA_DIR
+RCA_TYPE = osjoin(RCA_DATA_DIR, '{type}','rca_{type}')
+RCA_AGG = osjoin(RCA_DATA_DIR, 'Aggregated','agg_rca_{type}.csv')
+NESTEDNESS_MATRIX = osjoin(PUB_BASED_DERIVED_DIR,'Nestedness','Matrix','{type}','NestedMatrix_{startyear}-{endyear}_{period}.csv')
+NESTEDNESS_MEASURE = osjoin(PUB_BASED_DERIVED_DIR,'Nestedness','Nodf','{type}','NestedMeasure_{period}.csv')
+NESTEDNESS_NULL = osjoin(PUB_BASED_DERIVED_DIR,'Nestedness','Null','{type}','NestedModu_Null_{period}.csv')
+NESTEDNESS_NULL_DIR = osjoin(PUB_BASED_DERIVED_DIR,'Nestedness','Null','{type}')
+NESTEDNESS_NULL_AGG = osjoin(PUB_BASED_DERIVED_DIR,'Nestedness','Null','{type}',"agg_nestmodu.csv")
+ZSCORE_NESTMODU = osjoin(PUB_BASED_DERIVED_DIR, 'Nestedness','Null','Zscore','zscore_nestmodu_{type}.csv')
+MODULARITY_INDIVIDUAL = osjoin(PUB_BASED_DERIVED_DIR, 'Specialization','modularity_{type}_{startyear}-{endyear}.csv')
+CLUSTERCOEFFIENCE_INDIVIDUAL = osjoin(PUB_BASED_DERIVED_DIR, 'Specialization','CC_{type}_{startyear}-{endyear}.csv')
+FF_NESTMODU = osjoin(PUB_BASED_DERIVED_DIR, 'Nestedness', 'Null','FF-model','nullmodel_{type}_{startyear}-{endyear}.csv')
+PROX_PERIOD = osjoin(PROX_DATA_DIR,'snapshot','{type}','prox_{period}.csv')
+PROX_SIMILARITY=osjoin(PROX_DATA_DIR,'snapshot_similarity','{type}','prox_similarity_{startyear}-{endyear}_{period}.csv')
+
+
+########
+# Gini #
+########
+GINI_RAW_CSVS = osjoin(GINI_DATA_DIR, "Raw", "gini_{type}_{period}.csv")
+GINI_NORM_CSVS = osjoin(GINI_DATA_DIR, "Normalized", "gini_{type}_{period}.csv")
+GINI_CSVS = osjoin(GINI_DATA_DIR, "{norm}", "gini_{type}_{period}.csv")
+GINI_TYPE = osjoin(GINI_DATA_DIR, "{norm}", "gini_{type}")
+GINI_AGG = osjoin(GINI_DATA_DIR, "{norm}", "agg_gini_{type}.csv")
+BOOT_CSVS = osjoin(GINI_DATA_DIR, "Bootstrap", "raw", "sampledgini_{type}.csv")
+AGG_GINI_BOOT = osjoin(GINI_DATA_DIR, "Bootstrap", "agg_gini_boot_{type}.csv")
+BOOT_GINI_PATH = osjoin(GINI_DATA_DIR, "Bootstrap", "raw", "sampled_gini_{type}")
+
+SAMPLED_ACTUAL_PLOT = osjoin(
+    FIG_DIR,
+    "ginirelated",
+    "gini_incomegroup",
+    "Sampled",
+    "gini_sampled_actual_{type}.pdf",
+)
+GINI_RAW_FULL = osjoin(GINI_DATA_DIR, "Raw", "agg_gini_full.csv")
+
+##################
+#Regression table#
+##################
+
+REG_DATA=osjoin(PUB_BASED_DERIVED_DIR,'Regression','{norm}','{type}','reg_data_panel_{startyear}-{endyear}.csv')
+REG_RESULT_INCOMEGROWTH = osjoin(PUB_BASED_DERIVED_DIR, 'Regression','{norm}','{type}','results','incomegrowth_{startyear}-{endyear}.htm')
+REG_RESULT_PUBGROWTH = osjoin(PUB_BASED_DERIVED_DIR, 'Regression','{norm}','{type}','results','pubgrowth_{startyear}-{endyear}.htm')
+REG_RESULT_DIVERSITY = osjoin(PUB_BASED_DERIVED_DIR, 'Regression','{norm}','{type}','results','diversity_{startyear}-{endyear}.htm')
+REG_RESULT_SIMILARITY = osjoin(PUB_BASED_DERIVED_DIR, 'Regression','{norm}','{type}','results','similarity_{startyear}-{endyear}.htm')
+
+
+############
+# Networks #
+############
+
+BACKBONES = osjoin(BACKBONE_DIR, 'backbone_{type}_alpha{alpha}_{startyear}-{endyear}.csv')
+BACKBONES_PERIOD=osjoin(BACKBONE_DIR,'PERIOD','{type}','backbone_alpha{alpha}_{period}.csv')
+SBMS = osjoin(SBM_DIR, 'sbm_{type}_alpha{alpha}_{startyear}-{endyear}.csv')
+ID2NODE = osjoin(PUBCNT_DATA_DIR, 'id2node.tsv')
+EDGETRANS = osjoin(BACKBONE_DIR, 'edgeid_backbone_{type}_alpha{alpha}_{startyear}-{endyear}.csv')
+GROUPS_SBM_BACKBONE = osjoin(BACKBONE_DIR, 'group_smb_{type}_alpha{alpha}_{startyear}-{endyear}.csv')
+GROUPSSBM_DETAIL_BACKBONE = osjoin(BACKBONE_DIR, 'groupsmb_detail_{type}_alpha{alpha}_{startyear}-{endyear}.csv')
+LOUVAIN_GROUP=osjoin(PUB_BASED_DERIVED_DIR,'LOUVAIN','louvain_{type}_{startyear}-{endyear}.csv')
+LEIDEN_GROUP=osjoin(PUB_BASED_DERIVED_DIR,'LEIDEN','leiden_{type}_{startyear}-{endyear}.csv')
+INFOMAP=osjoin(PUB_BASED_DERIVED_DIR,'INFOMAP','infomap_{type}_{startyear}-{endyear}.csv')
+LEIDEN_PERIOD=osjoin(PUB_BASED_DERIVED_DIR,'LEIDEN','{type}','community','leiden_{period}_{startyear}-{endyear}.csv')
+LEIDEN_DIFF=osjoin(PUB_BASED_DERIVED_DIR,'LEIDEN','{type}','difference','leiden_{startyear}-{endyear}_{period}.csv')
+#####################################
+# Classification of Counting Method #
+#####################################
+LEIDEN_FULL=osjoin(PUB_BASED_DERIVED_DIR,'LEIDEN','leiden_full_{startyear}-{endyear}.csv')
+LEIDEN_FRAC=osjoin(PUB_BASED_DERIVED_DIR,'LEIDEN','leiden_frac_{startyear}-{endyear}.csv')
+LEIDEN_CORR=osjoin(PUB_BASED_DERIVED_DIR,'LEIDEN','leiden_corr_{startyear}-{endyear}.csv')
+LEIDEN_COMPARISON=osjoin(PUB_BASED_DERIVED_DIR,'LEIDEN','leiden_diff_countingmethod_{startyear}-{endyear}.csv')
+
+
+########################
+# Node and Edge Files  #
+########################
+GRAPHS_ORIG = osjoin(ADDITIONAL_DIR, "Graph_layouts", "graph_{type}.graphml")
+GRAPHS = osjoin(GRAPH_FILE_DIR, "graph_{type}.graphml")
+EDGE_FILES = osjoin(
+    EDGE_FILE_DIR, "edgefile_pub_{type}_alpha{alpha}_{startyear}-{endyear}.csv"
+)
+NODE_FILES = osjoin(NODE_FILE_DIR, "nodefile_pub_{type}.csv")
+DISC_CLASSIFICATION = osjoin(ADDITIONAL_DIR, "discipline_classification.csv")
+
+####################
+# Data for ternary #
+####################
+TER_DATA = osjoin(
+    PUB_BASED_DERIVED_DIR, "Ternary", "ternary_data_{type}_{startyear}-{endyear}.csv"
+)
+TER_INCOME_DATA = osjoin(
+    PUB_BASED_DERIVED_DIR, "Ternary", "ternary_income_{type}_{startyear}-{endyear}.csv"
+)
+RECLASSIFY_BY_TERNARY_DATA = osjoin(
+    PUB_BASED_DERIVED_DIR,
+    "Ternary",
+    "reclassify_byternary_{type}_{startyear}-{endyear}.csv",
+)
+TERNARY_INCOME_FILE = osjoin(
+    PUB_BASED_DERIVED_DIR,
+    "Ternary",
+    "IncomeGroup",
+    "ternary_incomegroup_{type}_{startyear}-{endyear}.csv",
+)
+TERNARY_GEO_FILE = osjoin(
+    PUB_BASED_DERIVED_DIR,
+    "Ternary",
+    "Region",
+    "ternary_geo_{type}_{startyear}-{endyear}.csv",
+)
+TER_INCREASE = osjoin(
+    PUB_BASED_DERIVED_DIR,
+    "Ternary",
+    "Change",
+    "terchange_{type}_{startyear}-{endyear}.csv",
+)
+TERREGRESSION_RA = osjoin(
+    PUB_BASED_DERIVED_DIR,
+    "Ternary",
+    "Regression",
+    "regression_RA_{type}_{startyear}-{endyear}.txt",
+)
+
+##################################
+# Data for discipline transition #
+##################################
+
+DENSITY_AND_TIMEFLAG = osjoin(PUB_BASED_DERIVED_DIR, 'Transition', 'density_and_timeflag_{type}_{startyear}-{endyear}.csv')
+DENSITY2PROB_PARAMS_INCOME = osjoin(PUB_BASED_DERIVED_DIR, 'Transition', 'density2prob_incomegroup_{type}_{startyear}-{endyear}.csv')
+DENSITY2PROB_DIS_PARAMS_INCOME = osjoin(PUB_BASED_DERIVED_DIR, 'Transition', 'density2prob_dis_incomegroup_{type}_{startyear}-{endyear}.csv')
+DENSITY2PROB_PARAMS = osjoin(PUB_BASED_DERIVED_DIR, 'Transition', 'density2prob_{type}_{startyear}-{endyear}.csv')
+DENSITY2PROB_DIS_PARAMS = osjoin(PUB_BASED_DERIVED_DIR, 'Transition', 'density2prob_dis_{type}_{startyear}-{endyear}.csv')
+CNTRY_GROUP = osjoin(PUB_BASED_DERIVED_DIR, 'Transition','group_rca_{type}_{startyear}-{endyear}.csv')
+#NULLMODEL_ACT = osjoin(PUB_BASED_DERIVED_DIR, 'Transition','NULLMODEL-1','act_{type}_alpha{alpha}_{startyear}-{endyear}.csv')
+#NULLMODEL_INACT = osjoin(PUB_BASED_DERIVED_DIR, 'Transition','NULLMODEL-1','inact_{type}_alpha{alpha}_{startyear}-{endyear}.csv')
+#TRANS_NULLMAIN_ACT = osjoin(PUB_BASED_DERIVED_DIR, 'Transition','NULLMAIN','act_{type}_alpha{alpha}_{startyear}-{endyear}.csv')
+#TRANS_NULLMAIN_INACT = osjoin(PUB_BASED_DERIVED_DIR, 'Transition','NULLMAIN','inact_{type}_alpha{alpha}_{startyear}-{endyear}.csv')
+ST_DENSITY2PROB_PLOT = osjoin(FIG_DIR, 'transition','{type}','st_density2prob_{startyear}-{endyear}.pdf')
+#ST_DENSITY2PROB_THETA_PLOT = osjoin(FIG_DIR, 'transition','{type}','st_density2prob_theta_{startyear}-{endyear}.pdf')
+ST_DENSITY2PROB_DISADV_PLOT = osjoin(FIG_DIR, 'transition','{type}','st_density2prob_disadv_{startyear}-{endyear}.pdf')
+#ST_DENSITY2PROB_THETA_DISADV_PLOT = osjoin(FIG_DIR, 'transition','{type}','st_density2prob_theta_disadv_{startyear}-{endyear}.pdf')
+INCOMEGROUP_DENSITY2PROB_PLOT = osjoin(FIG_DIR, 'transition','{type}','incomegroup_density2prob_{startyear}-{endyear}.pdf')
+INCOMEGROUP_DENSITY2PROB_THETA_PLOT = osjoin(FIG_DIR, 'transition','{type}','incomegroup_density2prob_theta_{startyear}-{endyear}.pdf')
+INCOMEGROUP_DENSITY2PROB_DISADV_PLOT = osjoin(FIG_DIR, 'transition','{type}','incomegroup_density2prob_disadv_{startyear}-{endyear}.pdf')
+INCOMEGROUP_DENSITY2PROB_THETA_DISADV_PLOT = osjoin(FIG_DIR, 'transition','{type}','incomegroup_density2prob_theta_disadv_{startyear}-{endyear}.pdf')
+INCOMEGROUP_DENSITY2PROB_ALL_PLOT = osjoin(FIG_DIR, 'transition','{type}','incomegroup_density2prob_all_{startyear}-{endyear}.pdf')
+INCOMEGROUP_DENSITY2PROB_DISADV_ALL_PLOT = osjoin(FIG_DIR, 'transition','{type}','incomegroup_density2prob_disadv_all_{startyear}-{endyear}.pdf')
+PROXIMITY_NULL = osjoin(PUB_BASED_DERIVED_DIR, 'Transition', 'PROXIMITY_NULL','proximity_null_grouplevel_{type}_{startyear}-{endyear}.csv')
+SIMILARITY = osjoin(PUB_BASED_DERIVED_DIR, 'Transition','similarity_{type}_{startyear}-{endyear}.csv')
+
+
+
+
+
+########################
+# additional data files#
+########################
+
+
+##########################
+# Country metadata files #
+##########################
+
+STTABLE = osjoin(ADDITIONAL_DIR, "country_ST.tsv")
+FLAG_TABLE = osjoin(ADDITIONAL_DIR, "country_WoS_ECI_WB_flags.tsv")
+SHP_FILE = osjoin(ADDITIONAL_DIR, "world_map", "ne_50m_admin_0_countries.shp")
+ECI_FILE = osjoin(ADDITIONAL_DIR, "eci_country_rankings.csv")
+INCOME_FILE = osjoin(ADDITIONAL_DIR, "GDP_PPP_CI.csv")
+INTERVAL_FILE = osjoin(ADDITIONAL_DIR, "year_intervals.txt")
+INCOME_GROUP = osjoin(ADDITIONAL_DIR, "IncomeGroup.xlsx")
+GEO_DATA = osjoin(ADDITIONAL_DIR, "country_region.xlsx")
+GDP_WB_FILE = osjoin(ADDITIONAL_DIR, "GDP_WB.csv")
+
+CNTRY_YEAR_INCOMEGROUP = osjoin(
+    DERIVED_DIR, "Country_metadata", "cntry_year_incomegroup.csv"
+)
+CNTRY_YEAR_INCOMEVALUE = osjoin(
+    DERIVED_DIR, "Country_metadata", "cntry_year_incomevalue.csv"
+)
+CNTRY_YEAR_GDP = osjoin(DERIVED_DIR, "Country_metadata", "cntry_year_gdp.csv")
+
+##############
+# Plot paths #
+##############
+GINI_ST_PLOT = osjoin(FIG_DIR, "ginirelated", "gini_st", "{norm}", "gini_st_{type}.pdf")
+GINI_WORLDMAP = osjoin(
+    FIG_DIR, "ginirelated", "gini_worldmap", "{norm}", "worldmap_{type}_{period}.pdf"
+)
+RCA_PLOT_DIR = osjoin(FIG_DIR, "RCA", "ChoroplethMap", "{type}")
+
+# Proximity matrix
+PROXMATRIX_PLOT = osjoin(
+    FIG_DIR, "prox_matrix", "MATRIX_{type}_{startyear}_{endyear}.pdf"
+)
+
+# Proximity stability
+PROX_STABILITY_PLOT = osjoin(FIG_DIR, "prox_matrix", "prox_stability.pdf")
+
+GINI_ECI = osjoin(
+    FIG_DIR, "ginirelated", "gini_eci_income", "{norm}", "gini_eci_{type}_{period}.pdf"
+)
+GINI_INCOME = osjoin(
+    FIG_DIR,
+    "ginirelated",
+    "gini_eci_income",
+    "{norm}",
+    "gini_income_{type}_{period}.pdf",
+)
+INCOME_ECI = osjoin(
+    FIG_DIR,
+    "ginirelated",
+    "gini_eci_income",
+    "{norm}",
+    "income_eci_{type}_{period}.pdf",
+)
+PUBCNT_GINI_PLOT=osjoin(
+    FIG_DIR,
+    "ginirelated",
+    "gini_eci_income",
+    "pubcnt",
+    "{norm}",
+    "pubcnt_gini_{type}_{period}.pdf",
+)
+PUBCNT_INCOME_PLOT=osjoin(
+    FIG_DIR,
+    "ginirelated",
+    "gini_eci_income",
+    "pubcnt",
+    "{norm}",
+    "pubcnt_income_{type}_{period}.pdf",
+)
+PUBCNT_ECI_PLOT=osjoin(
+    FIG_DIR,
+    "ginirelated",
+    "gini_eci_income",
+    "pubcnt",
+    "{norm}",
+    "pubcnt_eci_{type}_{period}.pdf",
+)
+TERNARY_PLOT = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "DensityEstimation",
+    "ternary_{type}_{startyear}-{endyear}_{st}.pdf",
+)
+TERNARY_TEMP_DENSITY = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "DensityEstimation",
+    "{type}",
+    "{st}",
+    "density_sbmgroup_{startyear}-{endyear}_{period}.pdf",
+)
+TERNARY_TEMP_ALL = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "DensityEstimation",
+    "AllGroups",
+    "density_{type}_{startyear}-{endyear}.pdf",
+)
+VECTOR_TERNARY = osjoin(
+    FIG_DIR, "Ternary", "VectorField", "vf_{type}_{startyear}-{endyear}.pdf"
+)
+TERNARY_INCOME_PLOT = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "Income",
+    "ternary_income_{type}_{startyear}-{endyear}_{period}.pdf",
+)
+TERNARY_INCOME_SINGLE = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "Income_Group",
+    "{type}",
+    "{incomegroup}",
+    "density_{startyear}-{endyear}_{period}.pdf",
+)
+TERNARY_CLASSIFY_BY_TERNARY_PLOT = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "Classify_by_Ternary",
+    "ternary_reclassify_{type}_{startyear}-{endyear}.pdf",
+)
+TERNARY_INCOME_GROUP_PLOT = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "Income_Group",
+    "ternary_incomegroup_{type}_{startyear}-{endyear}.pdf",
+)
+TERNARY_GEO_PLOT = osjoin(
+    FIG_DIR, "Ternary", "Region", "ternary_region_{type}_{startyear}-{endyear}.pdf"
+)
+NESTEDNESS_PLOT = osjoin(
+    FIG_DIR, "Nestedness", "{type}", "nestedness_{startyear}-{endyear}_{period}.pdf"
+)
+NESTEDNESS_ZSCORE_PLOT = osjoin(
+    FIG_DIR, "Nestedness", "NULLMODEL", "ZSCORE", "nest_modu_{type}.pdf"
+)
+NESTEDNESS_ZSCORE = osjoin(
+    FIG_DIR,
+    "Nestedness",
+    "NULLMODEL",
+    "ZSCORE",
+    "nest_zscore_{type}_{startyear}-{endyear}.pdf",
+)
+MODULARITY_ZSCORE = osjoin(
+    FIG_DIR,
+    "Nestedness",
+    "NULLMODEL",
+    "ZSCORE",
+    "modu_zscore_{type}_{startyear}-{endyear}.pdf",
+)
+MODULARITY_PLOT = osjoin(
+    FIG_DIR, "Specialization", "Modularity_by_adv_{type}_{startyear}-{endyear}.pdf"
+)
+CLUSTERCOEFFICIENT_PLOT = osjoin(
+    FIG_DIR,
+    "Specialization",
+    "clustercoefficient_by_adv_{type}_{startyear}-{endyear}.pdf",
+)
+GLOBAL_SPECIALIZATION_PLOT = osjoin(
+    FIG_DIR,
+    "Specialization",
+    "Global_specialization",
+    "{type}",
+    "Cntry_Dis_Cluster_{period}_{startyear}-{endyear}.pdf",
+)
+NETWORK_PLOTS = osjoin(FIG_DIR, "RCA_network")
+NETWORK_PLOTS_ALL_LABELED = osjoin(
+    NETWORK_PLOTS,
+    "all_labeled",
+    "network_all_labeled_{type}_alpha{alpha}_{startyear}-{endyear}.pdf",
+)
+NETWORK_PLOTS_COUNTRY_YEAR = osjoin(
+    NETWORK_PLOTS,
+    "individual",
+    "{type}",
+    "{country}",
+    "{period}_{type}_{country}_{period}_alpha{alpha}_span{startyear}-{endyear}_network.pdf",
+)
+ACT_PROB_PLOTS = osjoin(
+    FIG_DIR, "Transition", "{type}", "act_prob_{startyear}-{endyear}.pdf"
+)
+INACT_PROB_PLOTS = osjoin(
+    FIG_DIR, "Transition", "{type}", "inact_prob_{startyear}-{endyear}.pdf"
+)
+PROB_DIS_PLOTS = osjoin(
+    FIG_DIR, "Transition", "{type}", "prob_dis_{startyear}-{endyear}.pdf"
+)
+NETWORK_SBM_PLOT = osjoin(
+    NETWORK_PLOTS, "sbm_network_{type}_alpha{alpha}_{startyear}-{endyear}.pdf"
+)
+GDP_SPECIALIZATION_PLOTS = osjoin(
+    FIG_DIR,
+    "Spec",
+    "{type}",
+    "{sbm}",
+    "gdp_spec_{type}_{sbm}_alpha{alpha}_{period}.pdf",
+)
+TRANS_NULL1_ACT_PLOT = osjoin(
+    FIG_DIR,
+    "Transition",
+    "NULLMODEL-1",
+    "act_{type}_alpha{alpha}_{startyear}-{endyear}.pdf",
+)
+TRANS_NULL1_INACT_PLOT = osjoin(
+    FIG_DIR,
+    "Transition",
+    "NULLMODEL-1",
+    "inact_{type}_alpha{alpha}_{startyear}-{endyear}.pdf",
+)
+TRANS_NULLMAIN_ACT_PLOT = osjoin(
+    FIG_DIR,
+    "Transition",
+    "NULLMODEL_MAIN",
+    "act_{type}_alpha{alpha}_{startyear}-{endyear}.pdf",
+)
+TRANS_NULLMAIN_INACT_PLOT = osjoin(
+    FIG_DIR,
+    "Transition",
+    "NULLMODEL_MAIN",
+    "inact_{type}_alpha{alpha}_{startyear}-{endyear}.pdf",
+)
+INCOMEGROUP_GINI = osjoin(
+    FIG_DIR, "ginirelated", "gini_incomegroup", "{norm}", "gini_incomegroup_{type}.pdf"
+)
+INCOMEGROUP_ADVNUM = osjoin(
+    FIG_DIR,
+    "ginirelated",
+    "gini_incomegroup",
+    "{norm}",
+    "advnum_incomegroup_{type}.pdf",
+)
+INDIVIDUAL_TRAGECTORY = osjoin(
+    FIG_DIR, "Ternary", "Country", "{type}", "{country}_{startyear}-{endyear}.pdf"
+)
+RESOURCE_PLOT = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "Ter_change",
+    "{type}",
+    "resource_change_{startyear}-{endyear}.pdf",
+)
+APPLIED_PLOT = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "Ter_change",
+    "{type}",
+    "applied_change_{startyear}-{endyear}.pdf",
+)
+SOCIAL_PLOT = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "Ter_change",
+    "{type}",
+    "social_change_{startyear}-{endyear}.pdf",
+)
+GROUP_TRANSITION_PLOT = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "Group_transition",
+    "{type}",
+    "group_transition_{startyear}-{endyear}.pdf",
+)
+GDP_DIVERSITY_FLOW_PLOT = osjoin(
+    FIG_DIR, "ginirelated", "flow_plane", "{norm}", "diversity_income_flow_{type}.pdf"
+)
+TERNARY_ACTUAL_NULL_PLOT = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "NULLMODEL",
+    "ternary_actual_null_{type}_{startyear}-{endyear}.pdf",
+)
+COMPARISION_ACTUAL_NULL_PLOT = osjoin(
+    FIG_DIR,
+    "Transition",
+    "NULLMODEL",
+    "actual_null_grpcomparision_{type}_{startyear}-{endyear}.pdf",
+)
+GINI_RAW_NORM_PLOT = osjoin(
+    FIG_DIR, "ginirelated", "gini_incomegroup", "corr_raw_norm_{type},pdf"
+)
+TERNARY_INCOME_TRAGECTORY = osjoin(
+    FIG_DIR,
+    "Ternary",
+    "Income_Group",
+    "income_tragectory_{type}_{startyear}-{endyear}.pdf",
+)
+
+##########
+# Params #
+##########
+TYPES = ["full", "frac", "corr"]
+START_YRS = list(range(1973, 2018, 5))
+END_YRS = list(range(1977, 2018, 5))
+
+PERIODS = ['{}-{}'.format(sy, ey) for sy, ey in zip(START_YRS, END_YRS)]
+PERIODS.append('1973-2017')
+COUNTRIES = open(osjoin(RAW_DIR, 'nsp_countries.txt')).read().strip().split('\n')
+NORMS = ['Raw', 'Normalized']
+STS = ['Advanced', 'Proficient', 'Developing', 'Lagging' ]
+SBMS = ['NM', 'NE', 'SHM']
+TRANSNULLMODEL = ['NULLMODEL-1','NULLMODEL_MAIN']
+INCOME_GROUP_PARAMS = ['H','UM','LM','L']
+
+
+###############################################################################
+# Includes
+###############################################################################
+
+
+# Rules relating to basic data processing
+include: "Snakefile_dataprocessing.smk"
+# Rules relating to continued data processing and visualization of networks
+include: "Snakefile_RCA_network.smk"
+# Rules for continued processing and visualization of Ternary data
+include: "Snakefile_ternary.smk"
+# Rules for continued processing and visualization of GINI and GINI Bootstrap
+include: "Snakefile_GINI.smk"
+
+include: "Snakefile_transition.smk"
+
+include:"Snakefile_Regression.smk"
+
+# Rules for misc. processing and visualization of country-level data
+# include: 'Snakefile_country.smk'
+
+
+###############################################################################
+# Target Rule
+###############################################################################
+
+
+rule all:
+    input:
+        PUBCNT_GLOBAL_CSV, # Basic
+        expand(RAW_CSVS, type=TYPES),
+
+        expand(PUBCNT_CSVS, type=TYPES),
+
+        # RCA
+        expand(RCA_CSVS, type = TYPES, period = PERIODS),
+        expand(PROX_CSVS, type = TYPES, startyear = 1973, endyear = 2017),
+
+        expand(PROXMATRIX_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(RCA_PROX_CSVS,type = TYPES, startyear = 1973, endyear = 2017),
+        expand(RCA_AGG, type = TYPES),
+        expand(RCA_PLOT_DIR, type = 'full'),
+        expand(PROX_PERIOD, type=TYPES, period=PERIODS),
+        expand(PROX_SIMILARITY, type=TYPES, period=PERIODS,startyear = 1973, endyear = 2017),
+        #PROX_STABILITY_PLOT,
+
+
+        # Network/Null Models
+        expand(BACKBONES, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(BACKBONES_PERIOD,type=TYPES,alpha="02",period=PERIODS),
+        expand(EDGETRANS, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        ID2NODE,
+
+        # Not implemented becuse graph_tool is currently not installed
+
+        expand(GROUPS_SBM_BACKBONE, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(GROUPSSBM_DETAIL_BACKBONE, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(LOUVAIN_GROUP, type=TYPES,startyear = 1973, endyear = 2017),
+        expand(LEIDEN_GROUP,type=TYPES,startyear = 1973, endyear = 2017),
+        expand(LEIDEN_COMPARISON,startyear = 1973, endyear = 2017),
+        expand(LEIDEN_FULL,startyear = 1973, endyear = 2017),
+        expand(LEIDEN_FRAC,startyear = 1973, endyear = 2017),
+        expand(LEIDEN_CORR,startyear = 1973, endyear = 2017),
+        expand(LEIDEN_PERIOD, type=TYPES,period=PERIODS,startyear=1973,endyear=2017),
+        expand(LEIDEN_DIFF,type=TYPES,period=PERIODS,startyear=1973,endyear=2017),
+        #expand(INFOMAP,type=TYPES,startyear = 1973, endyear = 2017),
+
+
+        # GINI
+        expand(GINI_RAW_CSVS, type = TYPES, period = PERIODS),
+        expand(GINI_NORM_CSVS, type = TYPES, period = PERIODS),
+        expand(GINI_AGG, norm = NORMS, type = TYPES),
+        expand(GINI_ST_PLOT, norm = NORMS, type = TYPES),
+        expand(GINI_WORLDMAP, norm = NORMS, type = TYPES, period = PERIODS),
+        expand(GINI_ECI, norm = NORMS, type = TYPES, period = PERIODS[5:9]),
+        expand(GINI_INCOME, norm = NORMS, type = TYPES, period = PERIODS[5:9]),
+        expand(PUBCNT_GINI_PLOT, norm = NORMS, type = TYPES, period = PERIODS[5:9]),
+        expand(PUBCNT_INCOME_PLOT, norm = NORMS, type = TYPES, period = PERIODS[5:9]),
+        expand(PUBCNT_ECI_PLOT, norm = NORMS, type = TYPES, period = PERIODS[5:9]),
+        # GINI, ECI, and other indicators
+        expand(INCOME_ECI, norm = NORMS, type = TYPES, period = PERIODS[5:9]),
+        expand(CNTRY_YEAR_INCOMEGROUP),
+        expand(CNTRY_YEAR_GDP),
+        expand(INCOMEGROUP_GINI, norm=NORMS, type=TYPES),
+        expand(INCOMEGROUP_ADVNUM, norm=NORMS, type=TYPES),
+        expand(GDP_DIVERSITY_FLOW_PLOT, norm=NORMS, type=TYPES),
+        expand(BOOT_CSVS,type="full"),
+        expand(SAMPLED_ACTUAL_PLOT, type = "full"),
+
+        #regression analysis
+        expand(REG_DATA, norm=NORMS, type=TYPES,startyear = 1973, endyear = 2017),
+        #expand(REG_RESULT_INCOMEGROWTH, norm=NORMS, type=TYPES,startyear = 1973, endyear = 2017),
+        #expand(REG_RESULT_PUBGROWTH, norm=NORMS, type=TYPES,startyear = 1973, endyear = 2017),
+        #expand(REG_RESULT_DIVERSITY, norm=NORMS, type=TYPES,startyear = 1973, endyear = 2017),
+        #expand(REG_RESULT_SIMILARITY, norm=NORMS, type=TYPES,startyear = 1973, endyear = 2017),
+
+
+
+        expand(EDGE_FILES, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(NODE_FILES, type = TYPES),
+
+
+        expand(DENSITY_AND_TIMEFLAG, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(CNTRY_GROUP, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(GLOBAL_SPECIALIZATION_PLOT, type="full", period=PERIODS[:-1],startyear = 1973, endyear = 2017),
+        expand(ST_DENSITY2PROB_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(ST_DENSITY2PROB_DISADV_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        #expand(INCOMEGROUP_DENSITY2PROB_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        #expand(INCOMEGROUP_DENSITY2PROB_DISADV_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(INCOMEGROUP_DENSITY2PROB_ALL_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        #expand(INCOMEGROUP_DENSITY2PROB_DISADV_ALL_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        #expand(DENSITY2PROB_ADV_PARAMS_INCOME, type = TYPES, startyear = 1973, endyear = 2017),
+        #expand(DENSITY2PROB_DIS_PARAMS_INCOME, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(DENSITY2PROB_PARAMS, type = TYPES, startyear = 1973, endyear = 2017),
+        #expand(DENSITY2PROB_DIS_PARAMS, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(PROXIMITY_NULL, type='full', startyear=1973, endyear=2017),
+        expand(SIMILARITY, type=TYPES, startyear=1973, endyear=2017),
+
+
+
+
+        expand(NETWORK_PLOTS_ALL_LABELED, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(NETWORK_PLOTS_COUNTRY_YEAR, type = 'full', country = COUNTRIES, period = PERIODS, alpha = "02", startyear = 1973, endyear = 2017),
+        expand(NETWORK_SBM_PLOT, type = TYPES, startyear = 1973, endyear = 2017,alpha = "02"),
+
+        # Ternary
+        expand(TER_DATA, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERNARY_PLOT, type = TYPES, startyear = 1973, endyear = 2017,st = STS),
+        expand(TERNARY_TEMP_DENSITY, type = TYPES, st = STS, startyear = 1973, endyear = 2017,period = PERIODS[:-1]),
+        expand(TER_INCOME_DATA, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(VECTOR_TERNARY, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERNARY_INCOME_PLOT, type=TYPES, startyear=1973, endyear=2017, period=PERIODS[:-1]),
+        expand(TERNARY_TEMP_ALL, type=TYPES,startyear=1973, endyear=2017),
+        expand(RECLASSIFY_BY_TERNARY_DATA, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERNARY_CLASSIFY_BY_TERNARY_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERNARY_INCOME_FILE, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERNARY_GEO_FILE, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERNARY_INCOME_GROUP_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERNARY_GEO_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERNARY_INCOME_SINGLE, incomegroup=INCOME_GROUP_PARAMS, startyear = 1973, endyear = 2017,
+        period=PERIODS[3:-1], type="full"),
+        expand(INDIVIDUAL_TRAGECTORY,type = 'full', country = COUNTRIES, startyear = 1973, endyear = 2017),
+        expand(TER_INCREASE,type = TYPES, startyear = 1973, endyear = 2017),
+        expand(RESOURCE_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(APPLIED_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(SOCIAL_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(GROUP_TRANSITION_PLOT, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERREGRESSION_RA, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(TERNARY_ACTUAL_NULL_PLOT,type='full',startyear = 1973, endyear = 2017),
+        expand(COMPARISION_ACTUAL_NULL_PLOT, type='full',startyear = 1973, endyear = 2017),
+        expand(TERNARY_INCOME_TRAGECTORY, type='full',startyear=1973,endyear=2017),
+
+
+
+        expand(NESTEDNESS_MATRIX, type = "full", period = PERIODS,startyear = 1973, endyear = 2017),
+        expand(NESTEDNESS_PLOT, type = "full", period = PERIODS,startyear = 1973, endyear = 2017),
+        expand(FF_NESTMODU, type = "full",startyear = 1973, endyear = 2017),
+        expand(MODULARITY_ZSCORE, type="full",startyear = 1973, endyear = 2017),
+        expand(NESTEDNESS_ZSCORE, type="full",startyear = 1973, endyear = 2017),
+
+
+
+
+
+
+""" codes are not used now
+        # convert gdp ppp file to csv file
+        expand(CNTRY_YEAR_INCOMEVALUE),
+        expand(REG_PLOT, norm = NORMS, type = TYPES),
+        expand(PROB_DIS_PLOTS, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(COUNTRY_AGGREGATED_CSV, type = TYPES, alpha = "02", startyear = 1973, endyear = 2017),
+        expand(GDP_SPECIALIZATION_PLOTS, type = TYPES, alpha = "02", sbm = SBMS, period = PERIODS),
+        expand(MODULARITY_INDIVIDUAL, type=TYPES, startyear = 1973, endyear = 2017),
+        expand(CLUSTERCOEFFIENCE_INDIVIDUAL, type=TYPES, startyear = 1973, endyear = 2017),
+        expand(MODULARITY_PLOT, type=TYPES, startyear = 1973, endyear = 2017),
+        expand(CLUSTERCOEFFICIENT_PLOT,type=TYPES, startyear = 1973, endyear = 2017),
+        expand(NESTEDNESS_MEASURE, type = "full", period = PERIODS),
+        expand(NESTEDNESS_NULL_DIR, type="full"),
+        expand(NESTEDNESS_NULL, type = "full", period = PERIODS),
+        expand(NESTEDNESS_NULL_AGG, type="full"),
+        expand(ZSCORE_NESTMODU, type="full"),
+        expand(NESTEDNESS_ZSCORE_PLOT, type="full"),
+        expand(TRANS_NULL1_INACT_PLOT, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(NULLMODEL_ACT, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(NULLMODEL_INACT,type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(TRANS_NULL1_ACT_PLOT, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(TRANS_NULLMAIN_ACT, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(TRANS_NULLMAIN_INACT, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(TRANS_NULLMAIN_ACT_PLOT, type = TYPES, startyear = 1973, endyear = 2017, alpha = "02"),
+        expand(ACT_PROB_PLOTS, type = TYPES, startyear = 1973, endyear = 2017),
+        expand(INACT_PROB_PLOTS, type = TYPES, startyear = 1973, endyear = 2017),
+
+"""
